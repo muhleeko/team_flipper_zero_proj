@@ -26,9 +26,9 @@ ntfs = ['0x07', '0x17', 'Basic data partition']
 
 def parse_mmls(img_path):
     # use mmls to get a list of partitions.
-    md5sum_output = subprocess.getoutput("md5sum {0}".format(img_path))
+   # md5sum_output = subprocess.getoutput("md5sum {0}".format(img_path))
     print("The MD5 hash is: ")
-    print(md5sum_output)
+    #print(md5sum_output)
     print("")
     try:
         mmls_output = subprocess.getoutput("mmls {0}".format(img_path))
@@ -69,8 +69,21 @@ def parse_mmls(img_path):
             partition_info[part_count] = inf
             part_count += 1
             print(partition_info)
-            #print(part_count)
+            print(part_count)
     return partition_info, part_count
 
+def get_file_sys_info():
+    img_path = "/Users/leeko/Desktop/proj_flip/flip.dd"
+    partition_info, part_count = parse_mmls("/Users/leeko/Desktop/proj_flip/flip.dd")
+    # for loop to get all of the partitions and make separate partions
+    offset = partition_info[0]["Start"]
+    fsstat_output_filetype = subprocess.getoutput("fsstat -t -o {0} {1}".format(offset,img_path))
+    print("Fsstat Info: ")
+    print(fsstat_output_filetype)
+    # fls -f [filetype] -rd [partion]
+    return
+
 if __name__ == "__main__":
-    parse_mmls("/Users/leeko/Desktop/proj_flip/flip.dd")
+    #parse_mmls("/Users/leeko/Desktop/proj_flip/flip.dd")
+    get_file_sys_info()
+    
