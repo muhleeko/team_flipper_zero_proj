@@ -22,12 +22,14 @@ supported_types = ['0x83', '0x07', '0x0b', '0x0c','0x06', '0x17', '0x16', '0x1b'
 vfat = ['0x0b', '0x0c', '0x06', '0x1b', '0x1c', '0x16']
 ntfs = ['0x07', '0x17', 'Basic data partition']
 
-
+'''
+Gets the MD5 Hash of the Disk Image, shows information via MMLS, counts number of partitons found in disk image
+Returns list of partition_information and partion count.
+'''
 def parse_mmls(img_path):
     # use mmls to get a list of partitions.
     md5sum_output = subprocess.getoutput("md5sum {0}".format(img_path))
     print("MD5 hash of DD image is: {0}".format(md5sum_output))
-    #print(md5sum_output)
     print("")
     try:
         mmls_output = subprocess.getoutput("mmls {0}".format(img_path))
@@ -67,17 +69,16 @@ def parse_mmls(img_path):
             # add partition to list of all parts
             partition_info[part_count] = inf
             part_count += 1
-            #print(partition_info)
             print("")
     return partition_info, part_count
 
+# Carves out specific partion from dd and gets specific information of each separate partition, tools used fsstat, fls
 def get_file_sys_info(img_path,partition_info, part_count):
 
-    ### CHANGE IMG PATH Here to point to where ever your flip.dd file is located
-    #img_path = "/Users/leeko/Desktop/proj_flip/flip.dd"
-    #partition_info, part_count = parse_mmls("/Users/leeko/Desktop/proj_flip/flip.dd")
-    # for loop to get all of the partitions and make separate partions
+    # List that will contain names of partitions created
     all_partitions = {}
+
+    # for loop to get all of the partitions and make separate partions
     for i in range(part_count):
         skip = partition_info[i]["Start"]
         count = partition_info[i]["Length"]
@@ -85,12 +86,8 @@ def get_file_sys_info(img_path,partition_info, part_count):
         print("partition_{0}.dd has been created".format(i))
         all_partitions[i] = "partition_{0}.dd".format(i)
         print("\nFull Partition List - {0}".format(all_partitions))
-        #real_filetype = subprocess.getoutput("fsstat -t {0}".format(all_partitions[i]))
-        #fsstat_info = subprocess.getoutput("fsstat {0} | head -36".format(all_partitions[i]))
-        #print("\nFSSTAT OUTPUT BELOW")
-        #print(fsstat_info)
-        #print(real_filetype)
-
+        
+    # for loop to get the MD5 Hash of each partion as well as fsstat and fls 
     for parts in all_partitions:
         print("\n################--PARTITION {0} FILE SYSTEM INFORMATIOM--################\n".format(parts))
         md5out = subprocess.getoutput("md5sum {0}".format(all_partitions[parts]))
@@ -104,15 +101,13 @@ def get_file_sys_info(img_path,partition_info, part_count):
         print("FLS OUTPUT - Recently Deleted Files \n")
         print(fls_rd_output)
 
-    # offset = partition_info[0]["Start"]
-    # partition_info[i]["Start"]
-    # partition_infor[i]["Length"]
-    # fsstat_output_filetype = subprocess.getoutput("fsstat -t -o {0} {1}".format(offset,img_path))
-    # print("Fsstat Info: ")
+    # Just for formatting for some separation
     print("\n------------------------------------------------------------------------------------\n")
-
+   
+    # returns list of all partitions 
     return all_partitions
 
+# Uses tsk_recover to recover all files including allocated and unallocated and stores it in a local directory
 def recover_by_tsk(partition_list):    
 
     print("Creating local recovery directory to recover deleted files for each partition\n")
@@ -121,15 +116,12 @@ def recover_by_tsk(partition_list):
     subprocess.getoutput("mkdir recovery")
 
     for p in partition_list:
-
         subprocess.getoutput("mkdir recovery/part{0}".format(p))
         tsk_recover_outp = subprocess.getoutput("tsk_recover -e {0} ./recovery/part{1}".format(partition_list[p],p))
         print("Partition {0}'s Deleted Files recovered and stored in local directory at ./recovery/part{0}".format(p))
         print(tsk_recover_outp)
         print("")
 
-
-    # fls -f [filetype] -rd [partion]
     return
 
 def main(argv):
@@ -151,13 +143,11 @@ def main(argv):
             sys.exit()
         elif opt in ("-i", "--ifile"):
             inputfile = arg
-        #elif opt in ("-o", "--ofile"):
-        #   outputfile = arg
-    #print (inputfile)
-    #print ('Output file is ', outputfile)
+
     img_path = inputfile
 
     print("\nThis script may take some time please be patient :) \n")
+
     partition_info, part_count = parse_mmls(img_path)
     partition_list = get_file_sys_info(img_path,partition_info, part_count)
     recover_by_tsk(partition_list)
@@ -166,8 +156,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    #parse_mmls("/Users/leeko/Desktop/proj_flip/flip.dd")
     main(sys.argv[1:])
-    #partition_list = get_file_sys_info()
-    #recover_by_tsk(partition_list)
     
