@@ -12,6 +12,7 @@ __date__ = '25 APR 2023'
 import os
 import sys
 import hashlib
+import getopt
 # import commands depricated
 import subprocess
 from datetime import datetime
@@ -70,11 +71,11 @@ def parse_mmls(img_path):
             print("")
     return partition_info, part_count
 
-def get_file_sys_info():
+def get_file_sys_info(img_path,partition_info, part_count):
 
     ### CHANGE IMG PATH Here to point to where ever your flip.dd file is located
-    img_path = "/Users/leeko/Desktop/proj_flip/flip.dd"
-    partition_info, part_count = parse_mmls("/Users/leeko/Desktop/proj_flip/flip.dd")
+    #img_path = "/Users/leeko/Desktop/proj_flip/flip.dd"
+    #partition_info, part_count = parse_mmls("/Users/leeko/Desktop/proj_flip/flip.dd")
     # for loop to get all of the partitions and make separate partions
     all_partitions = {}
     for i in range(part_count):
@@ -131,9 +132,42 @@ def recover_by_tsk(partition_list):
     # fls -f [filetype] -rd [partion]
     return
 
+def main(argv):
+    inputfile = ''
+
+    if len(sys.argv) < 2:
+        print("\nERROR: Please provide the path to the disk image\n")
+        print("Usage: forensic_scripty.py -i <inputfile>\n")
+        exit()
+    try:
+        opts, args = getopt.getopt(argv,"hi:",["ifile="])
+    except getopt.GetoptError:
+        print("\nERROR: Improper arguments passed. -h for help\n")
+        print ('CORRECT USAGE: forensic_scripty.py -i <inputfile>\n')
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print ('\nUSAGE: forensic_scripty.py -i <inputfile>\n')
+            sys.exit()
+        elif opt in ("-i", "--ifile"):
+            inputfile = arg
+        #elif opt in ("-o", "--ofile"):
+        #   outputfile = arg
+    #print (inputfile)
+    #print ('Output file is ', outputfile)
+    img_path = inputfile
+
+    print("\nThis script may take some time please be patient :) \n")
+    partition_info, part_count = parse_mmls(img_path)
+    partition_list = get_file_sys_info(img_path,partition_info, part_count)
+    recover_by_tsk(partition_list)
+
+
+
+
 if __name__ == "__main__":
     #parse_mmls("/Users/leeko/Desktop/proj_flip/flip.dd")
-    print("\nThis script may take some time please be patient :) \n")
-    partition_list = get_file_sys_info()
-    recover_by_tsk(partition_list)
+    main(sys.argv[1:])
+    #partition_list = get_file_sys_info()
+    #recover_by_tsk(partition_list)
     
