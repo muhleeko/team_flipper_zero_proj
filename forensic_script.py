@@ -26,9 +26,9 @@ ntfs = ['0x07', '0x17', 'Basic data partition']
 
 def parse_mmls(img_path):
     # use mmls to get a list of partitions.
-   # md5sum_output = subprocess.getoutput("md5sum {0}".format(img_path))
-    print("The MD5 hash is: ")
-    #print(md5sum_output)
+    md5sum_output = subprocess.getoutput("md5sum {0}".format(img_path))
+    print("\nThe MD5 hash is: ")
+    print(md5sum_output)
     print("")
     try:
         mmls_output = subprocess.getoutput("mmls {0}".format(img_path))
@@ -73,17 +73,49 @@ def parse_mmls(img_path):
     return partition_info, part_count
 
 def get_file_sys_info():
+
+    ### CHANGE IMG PATH Here to point to where ever your flip.dd file is located
     img_path = "/Users/leeko/Desktop/proj_flip/flip.dd"
     partition_info, part_count = parse_mmls("/Users/leeko/Desktop/proj_flip/flip.dd")
     # for loop to get all of the partitions and make separate partions
+    all_partitions = {}
+    for i in range(part_count):
+        skip = partition_info[i]["Start"]
+        count = partition_info[i]["Length"]
+        subprocess.getoutput("dd if={0} skip={1} count={2} bs=512 of=partition_{3}.dd".format(img_path,skip,count,i))
+        print("partition_{0}.dd has been created".format(i))
+        all_partitions[i] = "partition_{0}.dd".format(i)
+        print(all_partitions)
+        real_filetype = subprocess.getoutput("fsstat -t {0}".format(all_partitions[i]))
+        fsstat_info = subprocess.getoutput("fsstat {0} | head -36".format(all_partitions[i]))
+        print("\nFSSTAT OUTPUT BELOW")
+        print(fsstat_info)
+        #print(real_filetype)
+
     offset = partition_info[0]["Start"]
-    fsstat_output_filetype = subprocess.getoutput("fsstat -t -o {0} {1}".format(offset,img_path))
-    print("Fsstat Info: ")
-    print(fsstat_output_filetype)
+    # partition_info[i]["Start"]
+    # partition_infor[i]["Length"]
+    # fsstat_output_filetype = subprocess.getoutput("fsstat -t -o {0} {1}".format(offset,img_path))
+    #print("Fsstat Info: ")
+    #print(real_filetype)
+
+    fls_rd_output = subprocess.getoutput("fls -f {0} -rd {1}".format(real_filetype,all_partitions[0]))
+    print("FLS Output - Recently Deleted Files \n")
+    print(fls_rd_output)
+
+    # make a recovery directory 
+    subprocess.getoutput("mkdir recovery")
+    tsk_recover_outp = subprocess.getoutput("tsk_recover -e {0} ./recovery".format(all_partitions[0]))
+    print("\n\nDeleted files recovered at stored in local directory at ./recovery")
+    print(tsk_recover_outp)
+    print("")
+
+
     # fls -f [filetype] -rd [partion]
     return
 
 if __name__ == "__main__":
     #parse_mmls("/Users/leeko/Desktop/proj_flip/flip.dd")
+    print("\nThis script may take some time please a patient :) \n")
     get_file_sys_info()
     
