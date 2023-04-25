@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 '''
-Copyright (C) 2013 Kevin Breen.
-Python script to MNT Partitions on a Disk Image
-http://techanarchy.net
+Python script to perform analysis on Disk Image by creating partions and recoverying deleted files
 '''
-__description__ = 'Python script to MNT Partitions on a Disk Image'
-__author__ = 'Kevin Breen @KevTheHermit'
-__version__ = '0.5'
-__date__ = '2014/09/13'
+__description__ = 'Python script to carve and analyze Partitions on a Disk Image'
+__author__ = 'Muhleeko'
+__version__ = '0.2'
+__date__ = '25 APR 2023'
 
 # https://stackoverflow.com/questions/11344557/replacement-for-getstatusoutput-in-python-3
 
@@ -27,8 +25,8 @@ ntfs = ['0x07', '0x17', 'Basic data partition']
 def parse_mmls(img_path):
     # use mmls to get a list of partitions.
     md5sum_output = subprocess.getoutput("md5sum {0}".format(img_path))
-    print("\nThe MD5 hash is: ")
-    print(md5sum_output)
+    print("MD5 hash of DD image is: {0}".format(md5sum_output))
+    #print(md5sum_output)
     print("")
     try:
         mmls_output = subprocess.getoutput("mmls {0}".format(img_path))
@@ -68,8 +66,8 @@ def parse_mmls(img_path):
             # add partition to list of all parts
             partition_info[part_count] = inf
             part_count += 1
-            print(partition_info)
-            print(part_count)
+            #print(partition_info)
+            print("")
     return partition_info, part_count
 
 def get_file_sys_info():
@@ -85,30 +83,49 @@ def get_file_sys_info():
         subprocess.getoutput("dd if={0} skip={1} count={2} bs=512 of=partition_{3}.dd".format(img_path,skip,count,i))
         print("partition_{0}.dd has been created".format(i))
         all_partitions[i] = "partition_{0}.dd".format(i)
-        print(all_partitions)
-        real_filetype = subprocess.getoutput("fsstat -t {0}".format(all_partitions[i]))
-        fsstat_info = subprocess.getoutput("fsstat {0} | head -36".format(all_partitions[i]))
-        print("\nFSSTAT OUTPUT BELOW")
-        print(fsstat_info)
+        print("\nFull Partition List - {0}".format(all_partitions))
+        #real_filetype = subprocess.getoutput("fsstat -t {0}".format(all_partitions[i]))
+        #fsstat_info = subprocess.getoutput("fsstat {0} | head -36".format(all_partitions[i]))
+        #print("\nFSSTAT OUTPUT BELOW")
+        #print(fsstat_info)
         #print(real_filetype)
 
-    offset = partition_info[0]["Start"]
+    for parts in all_partitions:
+        print("\n################--PARTITION {0} FILE SYSTEM INFORMATIOM--################\n".format(parts))
+        md5out = subprocess.getoutput("md5sum {0}".format(all_partitions[parts]))
+        print("MD5 Hash: {0}\n".format(md5out))
+
+        real_filetype = subprocess.getoutput("fsstat -t {0}".format(all_partitions[parts]))
+        fsstat_info = subprocess.getoutput("fsstat {0} | head -36".format(all_partitions[parts]))
+        print("FSSTAT OUTPUT {0}".format(fsstat_info))
+
+        fls_rd_output = subprocess.getoutput("fls -f {0} -rd {1}".format(real_filetype,all_partitions[parts]))
+        print("FLS OUTPUT - Recently Deleted Files \n")
+        print(fls_rd_output)
+
+    # offset = partition_info[0]["Start"]
     # partition_info[i]["Start"]
     # partition_infor[i]["Length"]
     # fsstat_output_filetype = subprocess.getoutput("fsstat -t -o {0} {1}".format(offset,img_path))
-    #print("Fsstat Info: ")
-    #print(real_filetype)
+    # print("Fsstat Info: ")
+    print("\n------------------------------------------------------------------------------------\n")
 
-    fls_rd_output = subprocess.getoutput("fls -f {0} -rd {1}".format(real_filetype,all_partitions[0]))
-    print("FLS Output - Recently Deleted Files \n")
-    print(fls_rd_output)
+    return all_partitions
+
+def recover_by_tsk(partition_list):    
+
+    print("Creating local recovery directory to recover deleted files for each partition\n")
 
     # make a recovery directory 
     subprocess.getoutput("mkdir recovery")
-    tsk_recover_outp = subprocess.getoutput("tsk_recover -e {0} ./recovery".format(all_partitions[0]))
-    print("\n\nDeleted files recovered at stored in local directory at ./recovery")
-    print(tsk_recover_outp)
-    print("")
+
+    for p in partition_list:
+
+        subprocess.getoutput("mkdir recovery/part{0}".format(p))
+        tsk_recover_outp = subprocess.getoutput("tsk_recover -e {0} ./recovery/part{1}".format(partition_list[p],p))
+        print("Partition {0}'s Deleted Files recovered and stored in local directory at ./recovery/part{0}".format(p))
+        print(tsk_recover_outp)
+        print("")
 
 
     # fls -f [filetype] -rd [partion]
@@ -116,6 +133,7 @@ def get_file_sys_info():
 
 if __name__ == "__main__":
     #parse_mmls("/Users/leeko/Desktop/proj_flip/flip.dd")
-    print("\nThis script may take some time please a patient :) \n")
-    get_file_sys_info()
+    print("\nThis script may take some time please be patient :) \n")
+    partition_list = get_file_sys_info()
+    recover_by_tsk(partition_list)
     
